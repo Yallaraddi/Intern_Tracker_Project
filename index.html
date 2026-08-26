@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InternTrack — Internship Application Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;1,6..72,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 21c-4-2-7-5.5-7-10a7 7 0 0 1 14 0c0 4.5-3 8-7 10Z"/><path d="M12 11v6"/><path d="M12 11c-1.5-1.5-2-3-2-4.5"/><path d="M12 11c1.5-1.5 2-3 2-4.5"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">InternTrack</div>
+        <div class="brand-sub">Application Tracker</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item active" data-tab="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" data-tab="applications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 2h6l1 3H8l1-3Z"/><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M9 12h6M9 16h6"/></svg>
+        Applications
+      </a>
+      <a class="nav-item" data-tab="kanban">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg>
+        Kanban Board
+      </a>
+      <a class="nav-item" data-tab="calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Calendar
+      </a>
+      <a class="nav-item" data-tab="analytics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+        Analytics
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="streak-pill">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c0-1-0.5-2-1-2.5 1.5 0.5 3 2.5 3 5a5 5 0 0 1-10 0c0-4 3-5 5-10.5Z"/></svg>
+        <span id="streakLabel">0 day streak</span>
+      </div>
+      <div class="theme-toggle">
+        <span id="themeLabel">Light mode</span>
+        <button id="themeToggleBtn" type="button"><span class="knob"></span></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <!-- ---------- DASHBOARD ---------- -->
+    <section class="tab-content active" id="tab-dashboard">
+      <div class="topbar">
+        <div>
+          <h1>Dashboard</h1>
+          <p>A quick look at where your internship search stands today.</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn" id="exportBtnDash">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+            Export data
+          </button>
+          <button class="btn btn-primary" id="addBtnDash">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Add application
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="statGrid"></div>
+
+      <div class="dash-grid">
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Application pipeline</h3></div>
+            <div class="pipeline-row" id="pipelineRow"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Recent applications</h3><span class="count" id="recentCount">0</span></div>
+            <div class="mini-list" id="recentList"></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Upcoming interviews</h3><span class="count" id="upcomingCount">0</span></div>
+            <div class="mini-list" id="upcomingList"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Follow-up reminders</h3><span class="count" id="followupCount">0</span></div>
+            <div class="mini-list" id="followupList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- APPLICATIONS ---------- -->
+    <section class="tab-content" id="tab-applications">
+      <div class="topbar">
+        <div>
+          <h1>Applications</h1>
+          <p>Every internship you've applied to, in one place.</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" id="addBtnApps">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Add application
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" id="searchInput" placeholder="Search by company, role, or location...">
+        </div>
+        <select id="filterStatus">
+          <option value="">All statuses</option>
+          <option value="Applied">Applied</option>
+          <option value="Interview">Interview</option>
+          <option value="Offer">Offer</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+        <select id="filterWorkType">
+          <option value="">All work types</option>
+          <option value="Remote">Remote</option>
+          <option value="Hybrid">Hybrid</option>
+          <option value="On-site">On-site</option>
+        </select>
+      </div>
+
+      <div class="app-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="company">Company / Role <span class="sort-arrow">↕</span></th>
+              <th>Location</th>
+              <th class="sortable" data-sort="status">Status <span class="sort-arrow">↕</span></th>
+              <th class="sortable" data-sort="appliedDate">Applied <span class="sort-arrow">↕</span></th>
+              <th>Score</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="appTableBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-note" id="appsEmptyNote" style="display:none;">No applications match your filters yet.</div>
+    </section>
+
+    <!-- ---------- KANBAN ---------- -->
+    <section class="tab-content" id="tab-kanban">
+      <div class="topbar">
+        <div>
+          <h1>Kanban board</h1>
+          <p>Drag a card to a new column to update its status.</p>
+        </div>
+      </div>
+      <div class="kanban" id="kanbanBoard"></div>
+    </section>
+
+    <!-- ---------- CALENDAR ---------- -->
+    <section class="tab-content" id="tab-calendar">
+      <div class="topbar">
+        <div>
+          <h1>Interview calendar</h1>
+          <p>See where your scheduled interviews fall this month.</p>
+        </div>
+      </div>
+      <div class="calendar-layout">
+        <div class="panel">
+          <div class="cal-head">
+            <h3 id="calMonthLabel">Month</h3>
+            <div class="cal-nav">
+              <button class="btn btn-sm" id="calPrev">&larr;</button>
+              <button class="btn btn-sm" id="calToday">Today</button>
+              <button class="btn btn-sm" id="calNext">&rarr;</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Upcoming interviews</h3><span class="count" id="calUpcomingCount">0</span></div>
+          <div class="mini-list" id="calUpcomingList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- ANALYTICS ---------- -->
+    <section class="tab-content" id="tab-analytics">
+      <div class="topbar">
+        <div>
+          <h1>Analytics</h1>
+          <p>How your search is trending across statuses and sources.</p>
+        </div>
+      </div>
+
+      <div class="kpi-row" id="kpiRow"></div>
+
+      <div class="analytics-grid">
+        <div class="panel">
+          <div class="panel-head"><h3>Applications by status</h3></div>
+          <div id="chartStatus"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Applications by source</h3></div>
+          <div id="chartSource"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Outcomes</h3></div>
+          <div id="chartOutcomes"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ ADD / EDIT MODAL ============ -->
+<div class="modal-overlay" id="formModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="formModalTitle">Add application</h3>
+      <button class="icon-btn" id="formModalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <form id="appForm">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Company name *</label>
+            <input type="text" id="f-company" required placeholder="e.g. Notion">
+          </div>
+          <div class="form-field">
+            <label>Job role *</label>
+            <input type="text" id="f-role" required placeholder="e.g. Frontend Intern">
+          </div>
+          <div class="form-field">
+            <label>Location</label>
+            <input type="text" id="f-location" placeholder="e.g. Bengaluru, IN">
+          </div>
+          <div class="form-field">
+            <label>Work type</label>
+            <select id="f-workType">
+              <option>Remote</option>
+              <option>Hybrid</option>
+              <option>On-site</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Status</label>
+            <select id="f-status">
+              <option>Applied</option>
+              <option>Interview</option>
+              <option>Offer</option>
+              <option>Rejected</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Applied date</label>
+            <input type="date" id="f-appliedDate">
+          </div>
+          <div class="form-field">
+            <label>Follow-up date</label>
+            <input type="date" id="f-followUpDate">
+          </div>
+          <div class="form-field">
+            <label>Interview date</label>
+            <input type="date" id="f-interviewDate">
+          </div>
+          <div class="form-field">
+            <label>Interview time</label>
+            <input type="time" id="f-interviewTime">
+          </div>
+          <div class="form-field">
+            <label>Application source</label>
+            <input type="text" id="f-source" placeholder="e.g. LinkedIn, Referral, Career fair">
+          </div>
+          <div class="form-field">
+            <label>Resume version</label>
+            <input type="text" id="f-resumeVersion" placeholder="e.g. Resume_v3_frontend">
+          </div>
+          <div class="form-field full">
+            <label>Recruiter / contact</label>
+            <input type="text" id="f-recruiter" placeholder="e.g. Priya Sharma - priya@company.com">
+          </div>
+          <div class="form-field full">
+            <label>Notes</label>
+            <textarea id="f-notes" placeholder="Anything worth remembering about this application..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" id="formCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="formSubmitBtn">Save application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ DETAILS MODAL ============ -->
+<div class="modal-overlay" id="detailModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="company-cell" id="detailModalTitleWrap">
+        <h3 id="detailModalTitle">Application details</h3>
+      </div>
+      <button class="icon-btn" id="detailModalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="detailModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="detailDeleteBtn">Delete</button>
+      <button class="btn" id="detailEditBtn">Edit</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
