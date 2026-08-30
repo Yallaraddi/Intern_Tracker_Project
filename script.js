@@ -46,15 +46,41 @@ function defaultChecklist() {
 /* ---------------------------------------------------------
    2. HELPERS (dates, formatting, scoring)
 --------------------------------------------------------- */
+// Returns today's date as "YYYY-MM-DD" using the LOCAL date.
+// IMPORTANT: we build this from getFullYear()/getMonth()/getDate() instead
+// of using toISOString(), because toISOString() converts to UTC first.
+// That conversion can shift the date by one day depending on the user's
+// timezone (for example, for a few hours after local midnight in India,
+// toISOString() still reports the previous day). Since every "is this
+// today / is this upcoming" check in the app compares against this
+// string, that shift was what made interviews sometimes look like they
+// were on the wrong day.
 function todayStr() {
-  const d = new Date();
-  return d.toISOString().slice(0, 10);
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+// Converts a 24-hour "HH:MM" time (straight from the time input) into a
+// friendlier 12-hour format like "10:30 AM" for display only. The saved
+// value itself is never changed, only how it's shown.
+function formatTime(timeStr) {
+  if (!timeStr) return "";
+  const parts = timeStr.split(":");
+  let hour = parseInt(parts[0], 10);
+  const minute = parts[1];
+  const period = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  return `${hour}:${minute} ${period}`;
 }
 
 function daysBetween(fromStr, toStr) {
@@ -111,6 +137,20 @@ function daysAgoLabel(dateStr) {
 // already happened along the way.
 function hasScheduledInterview(app) {
   return !!app.interviewDate && (app.status === "Interview" || app.status === "Offer");
+}
+
+// Builds a simple activity timeline directly from the fields already
+// stored on the application — no separate event log needed. Dated steps
+// are sorted chronologically, and "Current status" is always shown last
+// since it reflects right now, not a fixed point in the past.
+function getApplicationTimeline(app) {
+  const steps = [];
+  if (app.appliedDate) steps.push({ label: "Applied", date: app.appliedDate });
+  if (app.followUpDate) steps.push({ label: "Follow-up", date: app.followUpDate });
+  if (app.interviewDate) steps.push({ label: "Interview", date: app.interviewDate });
+  steps.sort((a, b) => a.date.localeCompare(b.date));
+  steps.push({ label: `Current status: ${app.status}`, date: null });
+  return steps;
 }
 
 function statusBadgeClass(status) {
@@ -226,7 +266,7 @@ function renderDashboard() {
     <div class="mini-row">
       <div class="mini-left">
         ${avatarHtml(a.company, "sm")}
-        <div class="mini-main"><strong>${escapeHtml(a.company)}</strong><span>${formatDate(a.interviewDate)}${a.interviewTime ? " · " + a.interviewTime : ""}</span></div>
+        <div class="mini-main"><strong>${escapeHtml(a.company)}</strong><span>${formatDate(a.interviewDate)}${a.interviewTime ? " · " + formatTime(a.interviewTime) : ""}</span></div>
       </div>
       <span class="badge badge-interview">${escapeHtml(a.role)}</span>
     </div>
@@ -308,6 +348,27 @@ function sortApplications(list) {
   });
 }
 
+// Builds the small "change status" dropdown used in the applications table.
+// It only lists the current status plus whatever moves are allowed from
+// there (see ALLOWED_NEXT_STATUSES). If no moves are allowed, the dropdown
+// is disabled so the user can see the status but can't change it.
+function buildStatusSelectHtml(app) {
+  const allowedMoves = ALLOWED_NEXT_STATUSES[app.status];
+  const optionStatuses = [app.status].concat(allowedMoves); // current status shown first
+  const isLocked = allowedMoves.length === 0;
+
+  let optionsHtml = "";
+  optionStatuses.forEach(s => {
+    const isSelected = s === app.status ? "selected" : "";
+    optionsHtml += `<option value="${s}" ${isSelected}>${s}</option>`;
+  });
+
+  return `
+    <select class="status-select ${statusBadgeClass(app.status)}" data-id="${app.id}" aria-label="Change status for ${escapeHtml(app.company)}" ${isLocked ? "disabled" : ""}>
+      ${optionsHtml}
+    </select>`;
+}
+
 function renderApplicationsTable() {
   const list = sortApplications(getFilteredApplications());
   const tbody = document.getElementById("appTableBody");
@@ -341,21 +402,18 @@ function renderApplicationsTable() {
         </div>
       </td>
       <td>${escapeHtml(a.location || "—")}<div class="cell-sub">${a.workType || ""}</div></td>
-      <td><span class="badge ${statusBadgeClass(a.status)}">${a.status}</span></td>
+      <td>${buildStatusSelectHtml(a)}</td>
       <td>${formatDate(a.appliedDate)}<div class="cell-sub days-ago">${daysAgoLabel(a.appliedDate)}</div></td>
       <td>${score}/100</td>
       <td>
         <div class="row-actions">
-          <button class="icon-btn" data-action="view" title="View">
+          <button class="icon-btn" data-action="view" title="View" aria-label="View ${escapeHtml(a.company)} application">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
-          <button class="icon-btn" data-action="edit" title="Edit">
+          <button class="icon-btn" data-action="edit" title="Edit" aria-label="Edit ${escapeHtml(a.company)} application">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
           </button>
-          <button class="icon-btn" data-action="duplicate" title="Duplicate">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-          </button>
-          <button class="icon-btn" data-action="delete" title="Delete">
+          <button class="icon-btn" data-action="delete" title="Delete" aria-label="Delete ${escapeHtml(a.company)} application">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg>
           </button>
         </div>
@@ -367,8 +425,15 @@ function renderApplicationsTable() {
     const id = row.dataset.id;
     row.querySelector('[data-action="view"]').addEventListener("click", () => openDetailModal(id));
     row.querySelector('[data-action="edit"]').addEventListener("click", () => openFormModal(id));
-    row.querySelector('[data-action="duplicate"]').addEventListener("click", () => duplicateApplication(id));
     row.querySelector('[data-action="delete"]').addEventListener("click", () => deleteApplication(id));
+  });
+
+  // Quick status update — changing the dropdown updates the application
+  // immediately, without opening the edit form.
+  tbody.querySelectorAll(".status-select").forEach(select => {
+    select.addEventListener("change", () => {
+      moveApplicationToStatus(select.dataset.id, select.value);
+    });
   });
 }
 
@@ -399,6 +464,16 @@ function initFilters() {
 --------------------------------------------------------- */
 const KANBAN_COLUMNS = ["Applied", "Interview", "Offer", "Rejected"];
 
+// Which statuses an application is allowed to move to, based on its
+// CURRENT status. Once an application reaches "Offer" or "Rejected" it
+// is treated as final and cannot be moved anywhere else.
+const ALLOWED_NEXT_STATUSES = {
+  Applied: ["Interview", "Offer", "Rejected"],
+  Interview: ["Offer", "Rejected"],
+  Offer: [],
+  Rejected: []
+};
+
 function renderKanban() {
   const board = document.getElementById("kanbanBoard");
   board.innerHTML = KANBAN_COLUMNS.map(col => {
@@ -420,6 +495,12 @@ function renderKanban() {
               <div class="kc-meta">
                 <span class="badge ${statusBadgeClass(a.status)}">${a.workType || ""}</span>
               </div>
+              ${ALLOWED_NEXT_STATUSES[a.status].length > 0 ? `
+                <select class="kc-move-select" data-id="${a.id}" aria-label="Move ${escapeHtml(a.company)} to a different status">
+                  <option value="">Move to...</option>
+                  ${ALLOWED_NEXT_STATUSES[a.status].map(s => `<option value="${s}">Move to ${s}</option>`).join("")}
+                </select>
+              ` : ""}
             </div>
           `).join("")}
         </div>
@@ -436,6 +517,17 @@ function renderKanban() {
     card.addEventListener("dragend", () => card.classList.remove("dragging"));
   });
 
+  // The dropdown is a click-friendly alternative to dragging — useful on
+  // touch screens, where the native drag-and-drop API often doesn't work.
+  // It only lists moves that are actually allowed (see ALLOWED_NEXT_STATUSES),
+  // so it can't be used to bypass the movement rules.
+  board.querySelectorAll(".kc-move-select").forEach(select => {
+    select.addEventListener("click", e => e.stopPropagation());
+    select.addEventListener("change", () => {
+      if (select.value) moveApplicationToStatus(select.dataset.id, select.value);
+    });
+  });
+
   // Wire up drop targets on each column
   board.querySelectorAll(".kanban-col").forEach(col => {
     col.addEventListener("dragover", e => {
@@ -447,16 +539,30 @@ function renderKanban() {
       e.preventDefault();
       col.classList.remove("drag-over");
       const id = e.dataTransfer.getData("text/plain");
-      const newStatus = col.dataset.status;
-      const app = applications.find(a => a.id === id);
-      if (app && app.status !== newStatus) {
-        app.status = newStatus;
-        saveApplications();
-        renderAll();
-        showToast(`${app.company} moved to ${newStatus}`);
-      }
+      moveApplicationToStatus(id, col.dataset.status);
     });
   });
+}
+
+// Shared by drag-and-drop, the Kanban "Move to" dropdown, and the table's
+// quick-status dropdown, so status changes always go through one place
+// and the movement rules only need to be checked here, once.
+function moveApplicationToStatus(id, newStatus) {
+  const app = applications.find(a => a.id === id);
+  if (!app || app.status === newStatus) return;
+
+  // Only allow moves that are listed for the application's current status.
+  const allowedMoves = ALLOWED_NEXT_STATUSES[app.status] || [];
+  if (!allowedMoves.includes(newStatus)) {
+    showToast(`${app.company} can't move from ${app.status} to ${newStatus}.`);
+    renderAll(); // redraw so the dropdown/card snaps back to the real status
+    return;
+  }
+
+  app.status = newStatus;
+  saveApplications();
+  renderAll();
+  showToast(`${app.company} moved to ${newStatus}`);
 }
 
 /* ---------------------------------------------------------
@@ -482,7 +588,7 @@ function renderCalendar() {
   });
 
   const dowNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  let html = dowNames.map(d => `<div class="cal-dow">${d}</div>`).join("");
+  let html = dowNames.map((d, i) => `<div class="cal-dow ${i === 0 || i === 6 ? "weekend" : ""}">${d}</div>`).join("");
 
   for (let i = 0; i < startWeekday; i++) html += `<div class="cal-cell empty"></div>`;
 
@@ -510,7 +616,7 @@ function renderCalendar() {
         ${avatarHtml(a.company, "sm")}
         <div class="mini-main"><strong>${escapeHtml(a.company)}</strong><span>${escapeHtml(a.role)}</span></div>
       </div>
-      <span class="badge badge-interview">${formatDate(a.interviewDate)}${a.interviewTime ? " · " + a.interviewTime : ""}</span>
+      <span class="badge badge-interview">${formatDate(a.interviewDate)}${a.interviewTime ? " · " + formatTime(a.interviewTime) : ""}</span>
     </div>
   `).join("") : `<div class="empty-note">No upcoming interviews.</div>`;
 }
@@ -599,6 +705,7 @@ function openFormModal(id) {
     document.getElementById("f-appliedDate").value = todayStr();
   }
   overlay.classList.add("open");
+  document.getElementById("f-company").focus();
 }
 
 function closeFormModal() {
@@ -615,6 +722,17 @@ function handleFormSubmit(e) {
 
   if (!values.company || !values.role) {
     showToast("Company name and job role are required.");
+    return;
+  }
+
+  // Simple sanity checks: follow-up and interview dates shouldn't fall
+  // before the date the application was actually submitted.
+  if (values.appliedDate && values.followUpDate && values.followUpDate < values.appliedDate) {
+    showToast("Follow-up date can't be before the applied date.");
+    return;
+  }
+  if (values.appliedDate && values.interviewDate && values.interviewDate < values.appliedDate) {
+    showToast("Interview date can't be before the applied date.");
     return;
   }
 
@@ -644,37 +762,6 @@ function deleteApplication(id) {
   saveApplications();
   renderAll();
   showToast("Application deleted");
-}
-
-// Creates a fresh copy of an application — handy when applying to a
-// second role at a company you've already tracked. The copy starts
-// back at "Applied" with today's date, and opens straight into the
-// edit form so the details can be adjusted right away.
-function duplicateApplication(id) {
-  const original = applications.find(a => a.id === id);
-  if (!original) return;
-  const copy = {
-    id: makeId(),
-    company: original.company,
-    role: original.role,
-    location: original.location,
-    workType: original.workType,
-    status: "Applied",
-    appliedDate: todayStr(),
-    followUpDate: "",
-    interviewDate: "",
-    interviewTime: "",
-    source: original.source,
-    resumeVersion: original.resumeVersion,
-    recruiter: "",
-    notes: "",
-    checklist: defaultChecklist()
-  };
-  applications.push(copy);
-  saveApplications();
-  renderAll();
-  showToast(`Duplicated ${original.company} — adjust the new copy`);
-  openFormModal(copy.id);
 }
 
 /* ---------------------------------------------------------
@@ -707,10 +794,23 @@ function openDetailModal(id) {
       <div class="detail-item"><span class="d-label">Status</span><span class="d-val"><span class="badge ${statusBadgeClass(app.status)}">${app.status}</span></span></div>
       <div class="detail-item"><span class="d-label">Applied date</span><span class="d-val">${formatDate(app.appliedDate)}</span></div>
       <div class="detail-item"><span class="d-label">Follow-up date</span><span class="d-val">${formatDate(app.followUpDate)}</span></div>
-      <div class="detail-item"><span class="d-label">Interview date</span><span class="d-val">${formatDate(app.interviewDate)}${app.interviewTime ? " · " + app.interviewTime : ""}</span></div>
+      <div class="detail-item"><span class="d-label">Interview date</span><span class="d-val">${formatDate(app.interviewDate)}${app.interviewTime ? " · " + formatTime(app.interviewTime) : ""}</span></div>
       <div class="detail-item"><span class="d-label">Source</span><span class="d-val">${escapeHtml(app.source || "—")}</span></div>
       <div class="detail-item"><span class="d-label">Resume version</span><span class="d-val">${escapeHtml(app.resumeVersion || "—")}</span></div>
       <div class="detail-item"><span class="d-label">Recruiter / contact</span><span class="d-val">${escapeHtml(app.recruiter || "—")}</span></div>
+    </div>
+
+    <div class="section-divider">Activity timeline</div>
+    <div class="timeline">
+      ${getApplicationTimeline(app).map(step => `
+        <div class="timeline-step">
+          <div class="timeline-dot"></div>
+          <div>
+            <div class="timeline-label">${step.label}</div>
+            ${step.date ? `<div class="timeline-date">${formatDate(step.date)}</div>` : ""}
+          </div>
+        </div>
+      `).join("")}
     </div>
 
     <div class="section-divider">Notes</div>
