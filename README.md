@@ -2,8 +2,9 @@
 
 An internship application tracker built using HTML, CSS and Vanilla JavaScript.
 
-## Live Demo
-https://my-interntrack.netlify.app
+## 🚀 Live Demo
+
+[Visit InternTrack](https://my-interntrack.netlify.app)
 
 ## Features
 - Dashboard
